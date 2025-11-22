@@ -1,0 +1,40 @@
+return {
+  -- Add Rust treesitter support
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = function(_, opts)
+      vim.list_extend(opts.ensure_installed, { "rust" })
+    end,
+  },
+
+  -- Configure Mason to install Rust LSP
+  {
+    "williamboman/mason.nvim",
+    opts = {
+      ensure_installed = {
+        "rust-analyzer",
+      },
+    },
+  },
+
+  -- Configure nvim-lspconfig for Rust
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      servers = {
+        rust_analyzer = {
+          settings = {
+            ["rust-analyzer"] = {
+              cargo = {
+                allFeatures = true,
+              },
+              checkOnSave = {
+                command = "clippy",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+}

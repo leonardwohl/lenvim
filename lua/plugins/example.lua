@@ -30,6 +30,13 @@ return {
   -- disable trouble
   { "folke/trouble.nvim", enabled = false },
 
+  {
+    "snacks.nvim",
+    opts = {
+      scroll = { enabled = false },
+    },
+  },
+
   -- override nvim-cmp and add cmp-emoji
   {
     "hrsh7th/nvim-cmp",

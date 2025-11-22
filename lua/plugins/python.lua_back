@@ -1,0 +1,39 @@
+return {
+  -- Add Python treesitter support
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = function(_, opts)
+      vim.list_extend(opts.ensure_installed, { "python" })
+    end,
+  },
+
+  -- Configure Mason to install Python LSP
+  {
+    "williamboman/mason.nvim",
+    opts = {
+      ensure_installed = {
+        "pyright",
+      },
+    },
+  },
+
+  -- Configure nvim-lspconfig for Python
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      servers = {
+        pyright = {
+          settings = {
+            python = {
+              analysis = {
+                typeCheckingMode = "basic",
+                autoSearchPaths = true,
+                useLibraryCodeForTypes = true,
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+}
