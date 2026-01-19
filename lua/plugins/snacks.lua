@@ -13,6 +13,13 @@ return {
       },
       -- Disable scroll animation
       scroll = { enabled = false },
+      -- Make picker case insensitive
+      picker = {
+        matcher = {
+          ignorecase = true,
+          smartcase = false,
+        },
+      },
     },
   },
 }
