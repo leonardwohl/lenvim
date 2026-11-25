@@ -34,21 +34,26 @@ New `flake.nix` at the repo root.
     - `LENVIM_LOMBOK_JAR`: lombok.jar
     - `LENVIM_JAVA_DEBUG_DIR`: directory holding `com.microsoft.java.debug.plugin-*.jar`
     - `LENVIM_JAVA_TEST_DIR`: directory holding the java-test server jars
-    - `LENVIM_SONARLINT_ANALYZERS`: directory holding the sonarlint analyzer jars
+  - No sonarlint variable is needed: nixpkgs' `sonarlint-ls` wrapper already
+    passes `-analyzers` with every bundled analyzer jar.
 - The tool lists live in `nix/tools.nix`, which returns `{ core, java }`. All
   attribute names below were checked against the darwin flake's nixpkgs pin on
   2026-11-25.
-  - core: `ripgrep fd fzf git tree-sitter lua-language-server stylua nixd nixfmt
-    terraform-ls tflint yaml-language-server actionlint prettier
+  - core: `ripgrep fd fzf git curl tree-sitter lua-language-server stylua nixd
+    nixfmt terraform-ls tflint yaml-language-server actionlint prettier
     vscode-langservers-extracted taplo dockerfile-language-server
     docker-compose-language-service hadolint pyright ruff
-    (python3.withPackages (p: [ p.debugpy ])) rust-analyzer
-    vscode-extensions.vadimcn.vscode-lldb shfmt shellcheck`, plus `gcc` on
-    Linux only (Treesitter parser compilation; macOS uses Xcode's `cc`).
-  - java: `jdt-language-server lombok vscode-extensions.vscjava.vscode-java-debug
-    vscode-extensions.vscjava.vscode-java-test sonarlint-ls checkstyle`.
-- The implementation step confirms each package's binary name and jar layout
-  (e.g. the binary name in sonarlint-ls and how codelldb is exposed).
+    python3Packages.debugpy rust-analyzer bash-language-server shfmt
+    shellcheck`, a `codelldb` shim, and `gcc` on Linux only.
+    - `curl` is what nvim-treesitter and blink.cmp download with.
+    - `gcc` is for Treesitter parser compilation (macOS uses Xcode's `cc`).
+    - `python3Packages.debugpy` provides `debugpy-adapter`, which nvim-dap-python
+      calls.
+    - The `codelldb` shim is a `bin/codelldb` symlink to `vscode-lldb`'s
+      `adapter/codelldb`. rustaceanvim finds `codelldb` on PATH.
+  - java (on PATH): `jdt-language-server sonarlint-ls checkstyle`. lombok,
+    java-debug and java-test are jars, so they are passed through the env
+    vars above.
 
 ## 2. Lua changes
 
@@ -60,10 +65,10 @@ case `LENVIM_NIX` is unset and Mason behaves as it does today.
     `mason-org/mason-lspconfig.nvim` and `jay-babu/mason-nvim-dap.nvim`.
   - Replace `rnix` and the `rnix-lsp` Mason entry with `nixd`.
 - `lua/plugins/sonarlint.lua`:
-  - Analyzer directory = `$LENVIM_SONARLINT_ANALYZERS`, falling back to
-    `$MASON/share/sonarlint-analyzers`.
-  - Command = whichever sonarlint binary is on PATH.
-  - Skip setup when it isn't executable.
+  - Under the wrapper the command is `{ "sonarlint-ls", "-stdio" }`. Without
+    the wrapper it stays `sonarlint-language-server` with the `$MASON` analyzer
+    jars, as today.
+  - Under the wrapper, skip it when `sonarlint-ls` isn't executable.
 - `lua/plugins/java.lua`:
   - With Mason disabled, LazyVim's java extra adds no lombok agent, no
     debug/test bundles and no main-class DAP configs. When the `LENVIM_*` Java
@@ -74,8 +79,12 @@ case `LENVIM_NIX` is unset and Mason behaves as it does today.
     from the current hardcoded macOS paths.
   - When `jdtls` is not executable (the `default` variant), disable
     `nvim-jdtls` so opening a Java file doesn't error.
-- `lua/plugins/checkstyle.lua`, `lua/plugins/terraform.lua`: register the
-  `checkstyle`/`tflint` linters only when the binary is executable.
+- `lua/plugins/checkstyle.lua`: under the wrapper, only register the
+  `checkstyle` linter when the binary is executable. (`tflint` is always in
+  core, so `terraform.lua` needs no guard.)
+- Guards apply only under the wrapper. Without it, Mason puts its bin dir on
+  PATH only when it loads, after the specs are evaluated, so a startup
+  `executable()` check would wrongly disable tools.
 - `lua/plugins/scryvim.lua`: add `cond` so it only loads when `~/src/scryvim`
   exists. The lualine component is only added under the same condition.
 - Treesitter stays as it is: parsers compile at runtime using the
@@ -88,8 +97,11 @@ case `LENVIM_NIX` is unset and Mason behaves as it does today.
 
 ### Darwin (`~/.config/nix/flake.nix`)
 
-- Add the input `lenvim.url = "path:/Users/lenwohl/.config/nvim"` with
-  `inputs.nixpkgs.follows = "nixpkgs"` (same pattern as `mcbuild`).
+- Add the input `lenvim.url = "git+file:///Users/lenwohl/.config/nvim"` with
+  `inputs.nixpkgs.follows = "nixpkgs"`.
+  - Use `git+file:`, not `path:` like `mcbuild`. A `path:` input fails with a
+    hash mismatch whenever lazy-lock.json changes. `git+file:` locks a commit,
+    and picking up changes takes `nix flake update lenvim`.
 - Replace `pkgs.neovim` in `environment.systemPackages` with
   `lenvim.packages.${system}.java`.
 - Remove the neovim overlay. Its `overrideAttrs` attributes do nothing.
@@ -106,6 +118,9 @@ case `LENVIM_NIX` is unset and Mason behaves as it does today.
   - Add `inputs.lenvim.packages.${pkgs.stdenv.hostPlatform.system}.default`
     to `environment.systemPackages`.
   - Set `environment.variables.EDITOR = "nvim"`.
+- The homelab commit can't include a `flake.lock` entry for lenvim until lenvim
+  is public. Before merging, the user runs `nix flake update lenvim` and
+  commits the lock.
 - One-time manual step on each host: `git clone` lenvim into `~/.config/nvim`.
 
 ## 4. Testing
@@ -131,9 +146,11 @@ case `LENVIM_NIX` is unset and Mason behaves as it does today.
 - Darwin: `darwin-rebuild build --flake ~/.config/nix`. The user runs the
   switch.
 - Homelab:
-  - `nix eval` of
-    `nixosConfigurations.{jenny,babel}.config.system.build.toplevel.drvPath`
-    with `--override-input lenvim path:/Users/lenwohl/.config/nvim`.
+  - `nix eval` of each host's `environment.systemPackages` names,
+    `environment.variables.EDITOR` and `programs.neovim.enable`, with
+    `--override-input lenvim git+file:///Users/lenwohl/.config/nvim`.
+  - The full toplevel isn't evaluated: babel's uv2nix inputs may need
+    Linux builds during evaluation.
   - The real build and use happen on the hosts once lenvim is pushed.
 
 ## 5. Git
