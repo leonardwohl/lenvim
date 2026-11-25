@@ -7,24 +7,12 @@ return {
     end,
   },
 
-  -- Configure Mason to install Nix LSP
-  {
-    "mason-org/mason.nvim",
-    opts = {
-      ensure_installed = {
-        "rnix-lsp",
-      },
-    },
-  },
-
-  -- Configure nvim-lspconfig for Nix
+  -- nixd comes from PATH (Nix wrapper, or nix-darwin systemPackages)
   {
     "neovim/nvim-lspconfig",
     opts = {
       servers = {
-        rnix = {
-          settings = {},
-        },
+        nixd = {},
       },
     },
   },
