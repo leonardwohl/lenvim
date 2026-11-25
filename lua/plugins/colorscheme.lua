@@ -3,6 +3,7 @@ return {
     "catppuccin/nvim",
     lazy = true,
     name = "catppuccin",
+    opts = { term_colors = true },
   },
 
   -- Disable bufferline
@@ -14,7 +15,8 @@ return {
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "catppuccin",
+      -- a flavour name: plain "catppuccin" resolves to Neovim 0.12's bundled, minimal port
+      colorscheme = "catppuccin-mocha",
     },
   },
 }
