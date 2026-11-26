@@ -1,9 +1,11 @@
--- Installed from GitHub; machines with a checkout at ~/src/scryvim use it instead
--- (dev = true + dev.fallback in config/lazy.lua).
+-- Installed from GitHub; machines with a checkout at ~/src/scryvim use it instead.
+local checkout = vim.fn.expand("~/src/scryvim")
+local has_checkout = vim.fn.isdirectory(checkout) == 1
+
 return {
   {
     "leonardwohl/scryvim",
-    dev = true,
+    dir = has_checkout and checkout or nil,
     lazy = false, -- plugin/ registers the deck filetype, so ft-based lazy loading can't trigger
     init = function()
       vim.g.scryvim = { type_colors = true, icons = true, pane = { tags = true }, auto_open = true }
