@@ -41,7 +41,7 @@ return {
       if vim.env.LENVIM_LOMBOK_JAR then
         table.insert(opts.cmd, "--jvm-arg=-javaagent:" .. vim.env.LENVIM_LOMBOK_JAR)
       end
-      if vim.env.LENVIM_JAVA_DEBUG_DIR then
+      if vim.env.LENVIM_JAVA_DEBUG_DIR and vim.env.LENVIM_JAVA_TEST_DIR then
         opts.jdtls = vim.tbl_deep_extend("force", opts.jdtls or {}, {
           init_options = {
             bundles = vim.list_extend(
@@ -52,8 +52,12 @@ return {
         })
         local on_attach = opts.on_attach
         opts.on_attach = function(args)
-          require("jdtls").setup_dap(opts.dap)
-          require("jdtls.dap").setup_dap_main_class_configs(opts.dap_main)
+          if opts.dap then
+            require("jdtls").setup_dap(opts.dap)
+            if opts.dap_main then
+              require("jdtls.dap").setup_dap_main_class_configs(opts.dap_main)
+            end
+          end
           if on_attach then
             on_attach(args)
           end

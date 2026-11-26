@@ -2,6 +2,10 @@
 # Opens one fixture per language in headless nvim and checks the expected LSP clients attach.
 # Usage: scripts/check-lsp.sh <path-to-nvim> [--java]
 set -uo pipefail
+if [[ $# -lt 1 ]]; then
+  echo "usage: scripts/check-lsp.sh <path-to-nvim> [--java]" >&2
+  exit 2
+fi
 nvim=$(realpath "$1")
 root=$(cd "$(dirname "$0")/.." && pwd)
 fx=$root/tests/fixtures

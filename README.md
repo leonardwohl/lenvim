@@ -12,5 +12,7 @@ on its PATH, and Mason turned off. Plugins are still managed by lazy.nvim.
 
 The config itself is read from `~/.config/nvim` as usual, so clone this repo there.
 Without the wrapper (plain `nvim`) Mason installs tools as before.
+Without the wrapper, nixd must be on PATH (it isn't a Mason package; on the Mac it comes from nix-darwin).
+Tools are pinned by each machine's system flake lock, so a new tool needs a `nix flake update lenvim` there.
 
 Check that the servers attach: `scripts/check-lsp.sh "$(nix build .#java --print-out-paths --no-link)/bin/nvim" --java`
