@@ -1,12 +1,9 @@
--- local checkout: private repo, and global git credential.username is the work account.
--- Only on machines that have the checkout.
-local present = vim.uv.fs_stat(vim.fn.expand("~/src/scryvim")) ~= nil
-
+-- Installed from GitHub; machines with a checkout at ~/src/scryvim use it instead
+-- (dev = true + dev.fallback in config/lazy.lua).
 return {
   {
-    dir = "~/src/scryvim",
-    name = "scryvim",
-    cond = present,
+    "leonardwohl/scryvim",
+    dev = true,
     lazy = false, -- plugin/ registers the deck filetype, so ft-based lazy loading can't trigger
     init = function()
       vim.g.scryvim = { type_colors = true, icons = true, pane = { tags = true }, auto_open = true }
@@ -21,9 +18,7 @@ return {
     -- deck size and mana symbols in deck buffers; empty elsewhere
     "nvim-lualine/lualine.nvim",
     opts = function(_, opts)
-      if present then
-        table.insert(opts.sections.lualine_x, 1, "scryvim")
-      end
+      table.insert(opts.sections.lualine_x, 1, "scryvim")
     end,
   },
 }
