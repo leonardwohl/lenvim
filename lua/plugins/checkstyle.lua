@@ -1,11 +1,13 @@
+local wrapper = require("config.wrapper")
+
 return {
-  -- Configure nvim-lint to use checkstyle
+  -- Configure nvim-lint to use checkstyle (the Nix wrapper's default variant has none)
   {
     "mfussenegger/nvim-lint",
     event = { "BufReadPost", "BufWritePost", "InsertLeave" },
     opts = {
       linters_by_ft = {
-        java = { "checkstyle" },
+        java = wrapper.has("checkstyle") and { "checkstyle" } or nil,
       },
     },
   },

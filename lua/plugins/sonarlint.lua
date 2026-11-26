@@ -1,14 +1,18 @@
+local wrapper = require("config.wrapper")
+
 return {
   -- Install SonarLint plugin
   {
     "https://gitlab.com/schrieveslaach/sonarlint.nvim",
+    cond = wrapper.has("sonarlint-ls"),
     dependencies = {
       "neovim/nvim-lspconfig",
     },
     config = function()
       require("sonarlint").setup({
         server = {
-          cmd = {
+          -- nixpkgs' sonarlint-ls already passes -analyzers with every bundled analyzer jar
+          cmd = wrapper.active and { "sonarlint-ls", "-stdio" } or {
             "sonarlint-language-server",
             "-stdio",
             "-analyzers",
